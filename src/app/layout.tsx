@@ -70,7 +70,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </AuthProvider>
         <Analytics />
         {/* Plausible, served through our own domain (see the rewrites in next.config.ts) so the CSP stays self-only */}
-        <Script src="/pl/script.js" data-domain="aiconstruct.uk" data-api="/pl/event" strategy="afterInteractive" />
+        <Script src="/pl/script.js" data-domain="aiconstruct-trades.netlify.app" data-api="/pl/event" strategy="afterInteractive" />
         {/* it reads the path, which the prerendered shell doesn't know yet */}
         <Suspense fallback={null}>
           <Offline />
