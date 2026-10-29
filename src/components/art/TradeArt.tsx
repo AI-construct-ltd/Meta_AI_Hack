@@ -21,6 +21,35 @@ const DEFAULT_ART = (
 );
 
 const ART: Record<string, React.ReactNode> = {
+  carpenter: (
+    <g {...S}>
+      {/* 2x4 framing studs with top plate & layout square */}
+      <rect x="25" y="24" width="110" height="14" rx="2" fill={W} />
+      <rect x="36" y="38" width="16" height="70" rx="1" fill={G} />
+      <rect x="108" y="38" width="16" height="70" rx="1" fill={G} />
+      <rect x="72" y="38" width="16" height="70" rx="1" fill={W} />
+      <path d="M60 48 L90 85 H60 Z" fill={A} strokeWidth="2" />
+    </g>
+  ),
+  mason: (
+    <g {...S}>
+      {/* CMU block coursing and mortar trowel */}
+      <rect x="25" y="65" width="52" height="26" rx="2" fill={G} />
+      <rect x="83" y="65" width="52" height="26" rx="2" fill={G} />
+      <rect x="54" y="36" width="52" height="26" rx="2" fill={W} />
+      <path d="M110 32 L136 22 L126 44 Z" fill={A} strokeWidth="2" />
+      <path d="M126 44 L138 54" strokeWidth="2.5" />
+    </g>
+  ),
+  roofer: (
+    <g {...S}>
+      {/* Rafter truss apex, collar tie and roofing */}
+      <path d="M25 85 L80 28 L135 85 Z" fill={W} strokeWidth="2.5" />
+      <path d="M80 28 V85" strokeWidth="2" />
+      <path d="M50 60 H110" strokeWidth="2" />
+      <path d="M35 76 H125" strokeWidth="1.5" strokeDasharray="6 3" />
+    </g>
+  ),
   interiors: (
     <g {...S}>
       {/* 3D isometric flat-pack side table with cam screw & Allen bolt */}

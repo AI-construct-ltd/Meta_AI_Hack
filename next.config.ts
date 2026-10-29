@@ -7,13 +7,14 @@ import type { NextConfig } from "next";
  */
 const CSP = [
   "default-src 'self'",
-  // dev adds eval for fast refresh and Vercel Analytics' debug script, which production serves from the site itself
-  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval' https://va.vercel-scripts.com"}`,
+  // allows Firebase Auth, Google APIs, fast refresh, and Vercel Analytics
+  `script-src 'self' 'unsafe-inline' https://apis.google.com https://*.firebaseapp.com https://*.googleapis.com${process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval' https://va.vercel-scripts.com"}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https://*.googleusercontent.com",
   "media-src 'self' blob: data:",
   "font-src 'self' data:",
-  "connect-src 'self'",
+  "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com",
+  "frame-src 'self' https://*.firebaseapp.com https://*.google.com https://accounts.google.com",
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
@@ -26,6 +27,7 @@ const SECURITY = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
   // the camera reads box labels, the microphone hears "next"; nothing else
   { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()" },
 ];

@@ -292,7 +292,7 @@ function NotFound({
               </>
             ) : trouble === "key" ? (
               <>
-                <b>Gemini didn't accept your key.</b> Fix it and AI can work out {name}&apos;s own steps.
+                <b>Gemini didn&apos;t accept your key.</b> Fix it and AI can work out {name}&apos;s own steps.
               </>
             ) : (
               <>

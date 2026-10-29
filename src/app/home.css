@@ -2523,3 +2523,219 @@
   padding: 60px 16px;
   color: var(--ink-2);
 }
+
+/* ================= Unauthenticated Landing Page ================= */
+
+.landing-site {
+  display: flex;
+  flex-direction: column;
+}
+
+.landing-hero-stage {
+  position: relative;
+  min-height: 580px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin: 0 -28px 48px;
+  padding: 72px 28px;
+  background: var(--page);
+}
+
+/* Background animated IKEA visual tracks */
+.ikea-bg-scroller {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 22px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.68;
+  mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.9) 25%, rgba(0, 0, 0, 0.4) 68%, transparent 98%);
+  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.9) 25%, rgba(0, 0, 0, 0.4) 68%, transparent 98%);
+}
+
+.ikea-bg-track {
+  display: flex;
+  gap: 22px;
+  width: max-content;
+  will-change: transform;
+}
+
+.track-left {
+  animation: ikeaScrollLeft 52s linear infinite;
+}
+
+.track-right {
+  animation: ikeaScrollRight 58s linear infinite;
+}
+
+@keyframes ikeaScrollLeft {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-33.333%);
+  }
+}
+
+@keyframes ikeaScrollRight {
+  0% {
+    transform: translateX(-33.333%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* Plain wordless IKEA visual card */
+.ikea-visual-card {
+  width: 240px;
+  height: 165px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.ikea-visual-inner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: ikeaItemAnim 3.8s ease-in-out infinite alternate;
+}
+
+@keyframes ikeaItemAnim {
+  0% {
+    transform: translateY(0px) scale(0.97);
+  }
+  100% {
+    transform: translateY(-4px) scale(1.02);
+  }
+}
+
+.ikea-drawing-wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.ikea-drawing-wrap .drawing {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ikea-drawing-wrap img {
+  max-width: 210px;
+  max-height: 140px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.ikea-visual-svg {
+  width: 100%;
+  height: 100%;
+  max-width: 220px;
+  max-height: 150px;
+  display: block;
+}
+
+/* Foreground overlay card */
+.landing-hero-card {
+  position: relative;
+  z-index: 5;
+  max-width: 800px;
+  text-align: center;
+  background: color-mix(in srgb, var(--page) 88%, transparent);
+  backdrop-filter: blur(16px) saturate(1.25);
+  -webkit-backdrop-filter: blur(16px) saturate(1.25);
+  border: 1px solid var(--line);
+  box-shadow: 0 16px 44px -10px rgba(15, 23, 42, 0.12);
+  padding: 48px 40px;
+  margin: 0 auto;
+}
+
+.landing-hero-title {
+  font-family: var(--display);
+  font-size: clamp(34px, 5.2vw, 56px);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  margin: 0 0 18px;
+}
+
+.landing-hero-lead {
+  font-size: clamp(16px, 2vw, 18.5px);
+  line-height: 1.5;
+  color: var(--ink-2);
+  margin: 0 auto 30px;
+  max-width: 660px;
+}
+
+.landing-hero-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.landing-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--ink);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 13px 26px;
+  border: 1px solid var(--ink);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+
+.landing-primary-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px -2px rgba(37, 99, 235, 0.35);
+}
+
+.landing-ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 15px;
+  padding: 13px 22px;
+  border: 1px solid var(--line);
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.landing-ghost-btn:hover {
+  border-color: var(--ink);
+  background: var(--sunk);
+}
+
+

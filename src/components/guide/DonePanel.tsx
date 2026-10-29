@@ -8,12 +8,10 @@ import { totals } from "@/lib/plan/contents";
 import { POPULAR } from "@/lib/search";
 import { buildMinutes, getPref, setPref } from "@/lib/store";
 import { Figure } from "../art/Figure";
-import { IArrowLeft, IArrowRight, ICheck, ILibrary, IShare } from "../art/Icons";
+import { IArrowLeft, IArrowRight, ICheck, ILibrary } from "../art/Icons";
 import Drawing from "../Drawing";
 import { fmtMin } from "./CoverPanel";
-import { buildCard } from "./shareCard";
-import { encodeSpec } from "@/lib/scan/share";
-import { track } from "@vercel/analytics";
+import { recordCompletedBuild } from "@/lib/firebase/completions";
 
 export default function DonePanel({ plan, slug, finish, onReview }: { plan: Plan; slug: string; finish: { ms: number; full: boolean } | null; onReview: () => void }) {
   const t = totals(plan);
@@ -25,6 +23,10 @@ export default function DonePanel({ plan, slug, finish, onReview }: { plan: Plan
   const recheck = a === "table" || a === "bed" || a === "seat" || a === "sofa";
   const tall = plan.steps.some((x) => x.kind === "anchor");
   const stat = [spent ? fmtMin(spent) : null, `${plan.steps.length} steps`, `${t.fittings} fittings`].filter(Boolean).join("  \u00b7  ");
+
+  useEffect(() => {
+    recordCompletedBuild(plan, slug, spent, finish?.ms);
+  }, [plan, slug, spent, finish?.ms]);
 
   return (
     <div className="pane done">
@@ -53,7 +55,9 @@ export default function DonePanel({ plan, slug, finish, onReview }: { plan: Plan
           </div>
         </motion.dl>
 
+        {/* Feature to share a complete build commented out:
         <ShareCard plan={plan} slug={slug} stat={stat} spent={spent} />
+        */}
 
         <Link href="/builds" className="workshop-link">
           <span className="wl-ico">
@@ -102,7 +106,7 @@ export default function DonePanel({ plan, slug, finish, onReview }: { plan: Plan
   );
 }
 
-/** The picture people post: the finished piece, its name and their time. */
+/*
 function ShareCard({ plan, slug, stat, spent }: { plan: Plan; slug: string; stat: string; spent: number | null }) {
   const [card, setCard] = useState<{ blob: Blob; url: string } | null>(null);
   const [copied, setCopied] = useState(false);
@@ -138,14 +142,12 @@ function ShareCard({ plan, slug, stat, spent }: { plan: Plan; slug: string; stat
         setTimeout(() => setCopied(false), 1800);
       }
     } catch {
-      /* cancelled */
     }
   };
 
   return (
     <motion.div className="share-card" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
       <div className={"share-pic" + (card ? " ready" : "")}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         {card && <img src={card.url} alt={`${plan.spec.name}, built`} />}
       </div>
       <div className="share-text">
@@ -166,6 +168,7 @@ function ShareCard({ plan, slug, stat, spent }: { plan: Plan; slug: string; stat
     </motion.div>
   );
 }
+*/
 
 /** Other pieces from the same family, or popular builds when there are none. */
 function NextUp({ plan }: { plan: Plan }) {

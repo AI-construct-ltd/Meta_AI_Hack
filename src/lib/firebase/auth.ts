@@ -36,7 +36,7 @@ export interface StoredUserProfile {
  * sets default access roles (apprentice vs author), and caches locally.
  */
 export async function recordUserLogin(user: User): Promise<StoredUserProfile> {
-  let profile: StoredUserProfile = {
+  const profile: StoredUserProfile = {
     uid: user.uid,
     email: user.email,
     displayName: user.displayName,
@@ -49,15 +49,16 @@ export async function recordUserLogin(user: User): Promise<StoredUserProfile> {
   if (db) {
     try {
       const userRef = doc(db, "users", user.uid);
-      const snap = await getDoc(userRef);
-      if (snap.exists()) {
+      const timeout = new Promise<null>((r) => setTimeout(() => r(null), 2500));
+      const snap = await Promise.race([getDoc(userRef), timeout]);
+      if (snap && snap.exists()) {
         const data = snap.data();
         profile.role = (data.role as UserRole) ?? "apprentice";
         profile.canAuthor = Boolean(data.canAuthor ?? data.role === "author");
-        await setDoc(userRef, { lastLoginAt: serverTimestamp() }, { merge: true });
+        setDoc(userRef, { lastLoginAt: serverTimestamp() }, { merge: true }).catch(() => {});
       } else {
         // Users default to non-author (view-only apprentice) unless granted access
-        await setDoc(
+        setDoc(
           userRef,
           {
             uid: user.uid,
@@ -71,7 +72,7 @@ export async function recordUserLogin(user: User): Promise<StoredUserProfile> {
             platform: "aiconstruct.uk",
           },
           { merge: true },
-        );
+        ).catch(() => {});
       }
     } catch (err) {
       console.warn("Could not record login in Firestore:", err);
@@ -155,14 +156,12 @@ export async function loginWithGoogle(): Promise<User> {
   if (!auth) throw new Error("Firebase Auth is not configured. Add NEXT_PUBLIC_FIREBASE credentials to .env.local.");
   const provider = new GoogleAuthProvider();
   const cred = await signInWithPopup(auth, provider);
-  await recordUserLogin(cred.user);
   return cred.user;
 }
 
 export async function loginWithEmail(email: string, pass: string): Promise<User> {
   if (!auth) throw new Error("Firebase Auth is not configured. Add NEXT_PUBLIC_FIREBASE credentials to .env.local.");
   const cred = await signInWithEmailAndPassword(auth, email.trim(), pass);
-  await recordUserLogin(cred.user);
   return cred.user;
 }
 
@@ -172,7 +171,6 @@ export async function registerWithEmail(email: string, pass: string, displayName
   if (displayName?.trim()) {
     await updateProfile(cred.user, { displayName: displayName.trim() });
   }
-  await recordUserLogin(cred.user);
   return cred.user;
 }
 

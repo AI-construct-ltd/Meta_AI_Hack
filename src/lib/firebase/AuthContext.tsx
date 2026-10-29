@@ -32,7 +32,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<StoredUserProfile | null>(null);
-  const [loading, setLoading] = useState(() => Boolean(auth));
+  const [loading, setLoading] = useState(isFirebaseConfigured);
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
@@ -55,25 +55,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = async () => {
     const u = await authLoginGoogle();
     setUser(u);
-    const prof = await recordUserLogin(u);
-    setProfile(prof);
     setModalOpen(false);
+    recordUserLogin(u).then((prof) => setProfile(prof)).catch(() => {});
   };
 
   const signInWithEmail = async (email: string, pass: string) => {
     const u = await authLoginEmail(email, pass);
     setUser(u);
-    const prof = await recordUserLogin(u);
-    setProfile(prof);
     setModalOpen(false);
+    recordUserLogin(u).then((prof) => setProfile(prof)).catch(() => {});
   };
 
   const signUpWithEmail = async (email: string, pass: string, name?: string) => {
     const u = await authRegisterEmail(email, pass, name);
     setUser(u);
-    const prof = await recordUserLogin(u);
-    setProfile(prof);
     setModalOpen(false);
+    recordUserLogin(u).then((prof) => setProfile(prof)).catch(() => {});
   };
 
   const signOut = async () => {

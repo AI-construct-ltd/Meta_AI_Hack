@@ -1,12 +1,14 @@
 "use client";
 
 import { useAuth } from "@/lib/firebase/AuthContext";
+import { useMounted } from "@/lib/useMounted";
 import { IPerson } from "../art/Icons";
 
 export default function UserMenu() {
+  const mounted = useMounted();
   const { user, canAuthor, loading, setModalOpen, signOut } = useAuth();
 
-  if (loading) {
+  if (!mounted || loading) {
     return <span className="auth-user-loading" aria-hidden="true" />;
   }
 
