@@ -1,0 +1,13 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "miro": {
+      "type": "local",
+      "command": ["npx", "-y", "@k-jarzyna/mcp-miro"],
+      "enabled": true,
+      "environment": {
+        "MIRO_ACCESS_TOKEN": "{env:MIRO_ACCESS_TOKEN}"
+      }
+    }
+  }
+}

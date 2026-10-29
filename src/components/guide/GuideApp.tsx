@@ -209,7 +209,7 @@ function Shell({ title, children }: { title: string; children: React.ReactNode }
   return (
     <div className="guide shell">
       <header className="topbar">
-        <Link href="/" className="home-btn" aria-label="Bygga home">
+        <Link href="/" className="home-btn" aria-label="AIConstruct home">
           <LogoMark size={34} />
         </Link>
         <div className="tb-title">
@@ -750,7 +750,7 @@ function Guide({ plan, slug, via, ai, startStep, onOwnSteps }: { plan: Plan; slu
     const s = plan.spec;
     // the cover keeps the page's own title; steps and the end say where you are
     document.title =
-      phase === "steps" ? `Step ${step + 1} of ${steps.length}, ${s.name} | Bygga` : phase === "done" ? `Built: ${s.name} | Bygga` : `${s.name} ${s.variant.toLowerCase()}: assembly step by step | Bygga`;
+      phase === "steps" ? `Step ${step + 1} of ${steps.length}, ${s.name} | AIConstruct` : phase === "done" ? `Built: ${s.name} | AIConstruct` : `${s.name} ${s.variant.toLowerCase()}: assembly step by step | AIConstruct`;
   }, [phase, step, steps.length, plan.spec]);
 
   const mode: StageMode = useMemo(() => {
@@ -772,7 +772,7 @@ function Guide({ plan, slug, via, ai, startStep, onOwnSteps }: { plan: Plan; slu
   return (
     <div className="guide" data-phase={phase} data-voice={voiceOn ? "on" : undefined}>
       <header className="topbar">
-        <Link href="/" className="home-btn" aria-label="Bygga home">
+        <Link href="/" className="home-btn" aria-label="AIConstruct home">
           <LogoMark size={34} />
         </Link>
         <div className="tb-title">

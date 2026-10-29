@@ -1,4 +1,4 @@
-export const PAGE_PROMPT = `You are reading one photo of a page from a product assembly manual. It can be furniture or anything else that gets assembled, from any brand. Report what is on this page as JSON only, no prose.
+export const PAGE_PROMPT = `You are reading one photo of a page from a product assembly manual, construction textbook, or architectural visual guide. It can be flat-pack furniture, building framing, or interior assemblies. Report what is on this page as JSON only, no prose.
 
 {
   "kind": "cover" | "parts" | "hardware" | "tools" | "steps" | "warnings" | "other",
@@ -15,9 +15,68 @@ Rules:
 - Hardware kinds: dowel, cam bolt, cam lock, screw, nail, shelf pin, bolt, leg bolt, hinge, knob, handle, wall bracket, felt pad, plate, other.
 - For steps, say plainly where things go: on top, underneath, left, right, front or back, and which parts touch.
 - Read part sizes from any dimension lines or numbers printed next to the drawings.
-- If the photo shows the box or the finished product rather than a page, use kind "cover", and describe its shape in product.type, like "low media stand with two shelves and a vertical divider, about 70 cm wide".`;
+- For construction/textbook pages: identify structural framing members (studs, plates, joists, rafters, footings) or interior millwork, noting nominal sizes (e.g. 2x4, 16" O.C., 4x8 sheet).
+- If the photo shows the finished assembly rather than a page, use kind "cover", and describe its shape in product.type.`;
 
-export const PLAN_PROMPT = `You turn an assembly manual into data for an animated 3D step by step guide. You get notes read from photos of the manual's pages, in order, and maybe a name the person typed.
+export const PLAN_PROMPT = `You turn an assembly manual or construction textbook into an animated 3D step-by-step guide matching IKEA furniture and interior visual standards.
+
+You get notes read from photos/pages of the manual or textbook. Convert what you see into clean, modular parts and realistic assembly steps.
+
+======================================================================
+STRICT REFERENCE LOOKUP TABLE (IKEA VISUAL STANDARDS & MEASUREMENTS)
+======================================================================
+Do NOT hallucinate arbitrary, floating, or non-standard dimensions. Snap all pieces to these standardized measurements and archetypes:
+
+1. CONVERTING TEXTBOOK / CONSTRUCTION PDF TO IKEA FURNITURE & INTERIORS:
+- Foundations / Slabs / Footings -> Map to Plinth Storage Base, Low Platform Bench, or Heavy Pedestal Unit.
+  * Size: W: 80-120 cm, H: 20-45 cm, D: 60 cm. Plinth base: 60-100 mm height.
+- Stud Walls / Partitions / Headers -> Map to Architectural Open Divider / Grid Shelving (like KALLAX or BILLY framing).
+  * Stud spacing: standard 400 mm module or 406 mm (16" O.C.).
+  * Studs / Plates lumber: 38 x 89 mm (standard 2x4).
+  * Sheathing / Wall face: 12 mm or 16 mm board.
+- Subfloors / Joists / Decking -> Map to Slatted Platform Deck, Bed Frame, or Table Base.
+  * Joists: 38 x 140 mm (2x6) or 38 x 89 mm at 400 mm spacing.
+  * Deck / top surface: 18 mm board or 10 mm slats.
+- Trusses / Rafters / Pitch Frames -> Map to Gabled Shelving Unit, Upper Hutch, or Sloped Bookcase.
+  * Rafters: 38 x 89 mm framing boards.
+- Casework / Millwork / Cabinets / Closets -> Map to Modular Cabinet (METOD / PAX / BESTÅ).
+  * Standard widths: 400, 600, 800 mm. Standard depths: 400 or 600 mm.
+- Doors / Windows / Openings -> Map to Hinged Fronts or Inset Shelf Compartments.
+
+2. STRICT MEASUREMENT LOOKUP TABLE:
+- Panel Thicknesses (t):
+  * Standard board (particleboard/MDF): exactly 16 mm or 18 mm.
+  * Thick top / frame / worktop: exactly 28 mm or 38 mm.
+  * Thin back panel / bottom: exactly 3 mm (material: "fiber").
+  * Dimensional framing lumber (actual mm):
+    - 2x4 stud / plate: [38, length, 89] or [89, length, 38]
+    - 2x6 stud / joist: [38, length, 140] or [140, length, 38]
+    - 1x4 trim / cleat: [19, length, 89]
+    - 4x4 post / leg: [89, length, 89] or round legs [dia 42, length, dia 42]
+- Standard Depths (D):
+  * Shallow bookcase / wall divider: 280 mm or 300 mm
+  * Medium shelf / bench / desk: 380 mm or 400 mm
+  * Deep cabinet / wardrobe / counter / frame: 600 mm
+- Standard Heights (H):
+  * Plinth base: 60 - 100 mm
+  * Low bench / footstool: 450 mm
+  * Desk / dining surface: 750 mm
+  * Countertop / workbench: 900 mm
+  * Tall wall unit / partition / wardrobe: 2000 mm to 2400 mm
+- Standard Fastener Hardware:
+  * dowel: len: 30 mm, dia: 8 mm
+  * camScrew: len: 34 mm, dia: 6 mm; cam: dia: 15 mm
+  * screw: len: 30 mm, 40 mm, or 60 mm, dia: 4 mm
+  * nail: len: 25 mm (backing), or len: 75 mm, dia: 3.5 mm (framing)
+  * pin: len: 16 mm, dia: 5 mm (shelf support)
+  * bolt: len: 50 mm, dia: 8 mm; bracket: corner angle bracket
+
+3. ZERO-TOLERANCE RULES TO PREVENT HALLUCINATIONS:
+- ZERO FLOATING PARTS: Every piece must either rest on the floor (y = size[1] / 2) or touch the face of another part flush.
+- EXACT FACE-TO-FACE TOUCHING: If two pieces join, do the math so their coordinates touch with no gap and no overlap.
+  Example: Two sides 18 mm thick at x = -341 and x = +341 have inner faces at -332 and +332. Any shelf fitting between them MUST be exactly 664 mm wide.
+- Centered on x = 0, z = 0, and grounded on y = 0.
+- Allowed materials: "board" (particleboard, MDF, plywood), "fiber" (thin backs/bottoms), "wood" (framing, solid wood), "metal", "soft" (cushions).
 
 Reply with JSON only, no prose:
 {
@@ -37,30 +96,28 @@ Reply with JSON only, no prose:
 }
 
 Fields:
-- name: the product name as printed. brand: the maker. variant: a short plain description. size: outer size in centimetres.
+- name: product name. brand: maker or series. variant: short description. size: outer size in centimetres.
 - difficulty: 1, 2 or 3. people: 2 only if a step really needs a second person.
-- archetype: the closest of shelf, drawers, table, bed, cabinet, seat, sofa. It is only a backup.
+- archetype: the closest of shelf, drawers, table, bed, cabinet, seat, sofa, or custom.
 
 Geometry, read this carefully:
 - Units are millimetres.
-- One entry per physical piece. Two identical side panels are two entries with different ids and the same label.
-- size is [width, height, depth] of the piece as it sits in the FINISHED product. A side panel 18 thick, 660 tall and 400 deep is [18, 660, 400]. A top is [664, 18, 400].
-- pos is the centre of the piece in the finished product. y is the height above the floor, x runs left to right seen from the front, z runs from the back (negative) to the front (positive). The product is centred on x = 0 and z = 0 and stands on y = 0.
-- Pieces that are joined touch face to face exactly, with no gap and no overlap. Do the arithmetic for every piece: if sides 18 thick stand at x = -341 and x = 341, their inner faces are at -332 and 332, so a top that fits between them is 664 wide.
-- Legs, rails, slats and rods are boxes too. Use "shape": "cyl" for round ones, with size [diameter, length, diameter] when upright or [length, diameter, diameter] when lying along x.
-- materials: board (particleboard, MDF, plywood), fiber (thin hardboard backs and drawer bottoms), wood (solid wood, legs, slats), metal, soft (cushions, mattresses).
-- Leave out hardware and packaging. At most 60 parts. If there are many identical slats, keep up to 12.
+- One entry per physical piece. Identical pieces have different ids and same label.
+- size is [width, height, depth] as it sits in the FINISHED product.
+- pos is the centre of the piece in the finished product. y = height above floor, x = left to right, z = back to front.
+- Legs, rails, slats and rods are boxes too. Use "shape": "cyl" for round ones.
+- Leave out hardware and packaging. At most 60 parts.
 
 Steps:
 - Follow the manual's own order. Write each title as one short instruction, under 60 characters. detail is one or two short sentences. Never use em dashes or en dashes.
 - add lists the ids of pieces that join the product in that step. Every piece is added exactly once, in the first step that uses it.
-- fix lists the hardware used in that step and how many. kind is one of: dowel, camScrew (cam bolt or connecting screw), cam (cam lock disc), screw, nail, pin (shelf pin), bolt (allen bolt or machine screw), legScrew (double ended leg bolt), hinge, knob, handle, bracket (wall fixing), glide (felt pad), plate. Use "to" with the ids it goes into when the manual makes that clear. Add len and dia in mm when they are printed.
+- fix lists the hardware used in that step and how many. kind is one of: dowel, camScrew, cam, screw, nail, pin, bolt, legScrew, hinge, knob, handle, bracket, glide, plate. Use "to" with the ids it goes into. Add len and dia in mm.
 - pose is how the product lies while you work: upright, upside_down, on_back (front facing up), face_down (back facing up), on_left_side, on_right_side.
 - tools: allen, screwdriver, flathead, hammer, drill, wrench, level, tape, pencil, knife.
-- warnings: two (needs two people), floor (work on a soft surface), loose (don't fully tighten yet), hand (hand tight only), wall (fix it to the wall), tip (can tip over), square (check it is square), face (mind which way the finished side faces).
+- warnings: two, floor, loose, hand, wall, tip, square, face.
 - Usually 6 to 20 steps.
 
-If you only have the cover or a photo of the product, design the most typical assembly for that exact product, with the usual pieces, hardware and steps for its shape and size, and set "fromCover": true.
+If you only have the cover or a photo of the product, design the most typical assembly for that exact product using the reference lookup table, with the usual pieces, hardware and steps for its shape and size, and set "fromCover": true.
 
 Example, a small bedside table:
 {"name":"KUBO","brand":"Acme","variant":"Bedside table","category":"Bedside table","size":{"w":40,"h":50,"d":35},"minutes":25,"people":1,"difficulty":1,"archetype":"cabinet",
@@ -80,5 +137,5 @@ export function planInput(pages: unknown[], hint: string) {
 }
 
 export function repairInput(issues: string[]) {
-  return `Some parts don't fit together yet:\n${issues.map((x) => `- ${x}`).join("\n")}\nFix the sizes and positions so joined pieces touch face to face, then reply with the full corrected JSON only.`;
+  return `Some parts don't fit together yet:\n${issues.map((x) => `- ${x}`).join("\n")}\nFix the sizes and positions according to the strict IKEA reference lookup table so joined pieces touch face to face with zero floating parts, then reply with the full corrected JSON only.`;
 }

@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/firebase/AuthContext";
 import { IPerson } from "../art/Icons";
 
 export default function UserMenu() {
-  const { user, loading, setModalOpen, signOut } = useAuth();
+  const { user, canAuthor, loading, setModalOpen, signOut } = useAuth();
 
   if (loading) {
     return <span className="auth-user-loading" aria-hidden="true" />;
@@ -41,6 +41,21 @@ export default function UserMenu() {
           <span className="auth-initials">{initials}</span>
         )}
         <span className="auth-user-name">{name}</span>
+        <span
+          className="auth-badge"
+          style={{
+            fontSize: "10.5px",
+            fontWeight: 700,
+            padding: "2px 6px",
+            background: canAuthor ? "var(--ink)" : "var(--sunk)",
+            color: canAuthor ? "#ffffff" : "var(--ink-3)",
+            border: "1px solid var(--line)",
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+          }}
+        >
+          {canAuthor ? "Author" : "Apprentice"}
+        </span>
       </div>
       <button
         type="button"

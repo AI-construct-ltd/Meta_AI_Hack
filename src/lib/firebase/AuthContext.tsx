@@ -10,10 +10,13 @@ import {
   registerWithEmail as authRegisterEmail,
   logoutUser,
   recordUserLogin,
+  type StoredUserProfile,
 } from "./auth";
 
 interface AuthContextValue {
   user: User | null;
+  profile: StoredUserProfile | null;
+  canAuthor: boolean;
   loading: boolean;
   isConfigured: boolean;
   modalOpen: boolean;
@@ -28,6 +31,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<StoredUserProfile | null>(null);
   const [loading, setLoading] = useState(() => Boolean(auth));
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -37,7 +41,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        await recordUserLogin(currentUser);
+        const prof = await recordUserLogin(currentUser);
+        setProfile(prof);
+      } else {
+        setProfile(null);
       }
       setLoading(false);
     });
@@ -48,30 +55,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = async () => {
     const u = await authLoginGoogle();
     setUser(u);
+    const prof = await recordUserLogin(u);
+    setProfile(prof);
     setModalOpen(false);
   };
 
   const signInWithEmail = async (email: string, pass: string) => {
     const u = await authLoginEmail(email, pass);
     setUser(u);
+    const prof = await recordUserLogin(u);
+    setProfile(prof);
     setModalOpen(false);
   };
 
   const signUpWithEmail = async (email: string, pass: string, name?: string) => {
     const u = await authRegisterEmail(email, pass, name);
     setUser(u);
+    const prof = await recordUserLogin(u);
+    setProfile(prof);
     setModalOpen(false);
   };
 
   const signOut = async () => {
     await logoutUser();
     setUser(null);
+    setProfile(null);
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        profile,
+        canAuthor: Boolean(profile?.canAuthor),
         loading,
         isConfigured: isFirebaseConfigured,
         modalOpen,
