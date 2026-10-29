@@ -69,7 +69,7 @@ export async function recordUserLogin(user: User): Promise<StoredUserProfile> {
             createdAt: serverTimestamp(),
             role: "apprentice",
             canAuthor: false,
-            platform: "netlify.app",
+            platform: "aiconstruct-trades.web.app",
           },
           { merge: true },
         ).catch(() => {});

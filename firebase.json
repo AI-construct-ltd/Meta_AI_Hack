@@ -1,4 +1,19 @@
 {
+  "apphosting": {
+    "backendId": "aiconstruct-trades",
+    "rootDir": "/",
+    "ignore": [
+      "node_modules",
+      "docs",
+      ".git",
+      ".next",
+      ".vercel",
+      ".firebase",
+      "firebase-debug.log",
+      "firebase-debug.*.log",
+      "functions"
+    ]
+  },
   "firestore": {
     "database": "(default)",
     "location": "eur3",

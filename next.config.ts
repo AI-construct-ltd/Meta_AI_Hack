@@ -33,6 +33,7 @@ const SECURITY = [
 ];
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   // AGENTS.md is ours (it keeps the same advice, without the dashes the managed block brings)
   agentRules: false,
   cacheComponents: true,
