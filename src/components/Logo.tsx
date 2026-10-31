@@ -1,21 +1,18 @@
 import Link from "next/link";
 
-/** Official brand logo mark for AIConstruct. */
+/** Official brand logo mark for AIConstruct using assets from public/aiconstruct logos+favicons. */
 export function LogoMark({ size = 32, className }: { size?: number; className?: string }) {
   return (
-    <svg
-      viewBox="0 0 32 32"
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/aiconstruct%20logos+favicons/android-chrome-192x192.png"
+      alt="AIConstruct Logo"
       width={size}
       height={size}
       className={"mark " + (className ?? "")}
-      aria-hidden="true"
-    >
-      <rect x="2" y="2" width="28" height="28" rx="6" fill="var(--ink)" />
-      <path d="M16 7 L25 12 L16 17 L7 12 Z" fill="none" stroke="#ffffff" strokeWidth="1.8" strokeLinejoin="round" />
-      <path d="M7 12 V22 L16 27 V17" fill="none" stroke="var(--line-2)" strokeWidth="1.8" strokeLinejoin="round" />
-      <path d="M25 12 V22 L16 27" fill="none" stroke="#ffffff" strokeWidth="1.8" strokeLinejoin="round" />
-      <rect x="14" y="15" width="4" height="4" rx="1" fill="var(--accent)" />
-    </svg>
+      style={{ width: size, height: size, objectFit: "contain", borderRadius: Math.round(size * 0.2) }}
+      draggable={false}
+    />
   );
 }
 

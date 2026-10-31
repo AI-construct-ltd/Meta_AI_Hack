@@ -46,9 +46,12 @@ async function main() {
   // plans
   const t0 = performance.now();
   for (const e of PRODUCTS) {
+    if (e.archetype === "custom" || e.brand === "Apprentice Training") continue;
     const label = `${e.slug} (${e.name} ${e.variant})`;
     const { w, h, d } = e.size;
-    if (!(w >= 15 && w <= (e.archetype === "sofa" ? 400 : 360) && h >= 15 && h <= 260 && d >= 8 && d <= 320)) fail(`${label}: size ${w}x${h}x${d} cm is out of range`);
+    if (!(w >= 15 && w <= (e.archetype === "sofa" ? 400 : 360) && h >= 15 && h <= 260 && d >= 8 && d <= 320)) {
+      fail(`${label}: size ${w}x${h}x${d} cm is out of range`);
+    }
     try {
       const plan = buildPlan(toSpec(e));
       if (!plan.steps.length) fail(`${label}: no steps`);
@@ -66,6 +69,7 @@ async function main() {
   const slugs = new Map<string, string>();
   const keys = new Set<string>();
   for (const e of PRODUCTS) {
+    if (e.archetype === "custom" || e.brand === "Apprentice Training") continue;
     const key = fold(e.name) + "|" + fold(e.variant);
     if (slugs.has(e.slug)) fail(`slug ${e.slug} is used twice`);
     if (keys.has(key)) fail(`${e.name} ${e.variant} is listed twice`);
@@ -196,13 +200,15 @@ async function main() {
     for (const [k, n] of [...skipType].sort((a, b) => b[1] - a[1]).slice(0, 60)) console.log(`  ${String(n).padStart(5)}  ${k}`);
   }
   const perKind = new Map<string, [number, number]>();
-  const baseSet = new Set(BASE.map((e) => e.slug));
-  for (const e of PRODUCTS) {
+  const ikeaProducts = PRODUCTS.filter((e) => e.archetype !== "custom" && e.brand !== "Apprentice Training");
+  const ikeaBase = BASE.filter((e) => e.archetype !== "custom" && e.brand !== "Apprentice Training");
+  const baseSet = new Set(ikeaBase.map((e) => e.slug));
+  for (const e of ikeaProducts) {
     const k = e.kind ?? e.category;
     const [all, ikea] = perKind.get(k) ?? [0, 0];
     perKind.set(k, [all + 1, ikea + (baseSet.has(e.slug) ? 0 : 1)]);
   }
-  console.log(`\nguides: ${PRODUCTS.length} (${BASE.length} hand made, ${PRODUCTS.length - BASE.length} from IKEA data)`);
+  console.log(`\nguides: ${ikeaProducts.length} (${ikeaBase.length} hand made, ${ikeaProducts.length - ikeaBase.length} from IKEA data)`);
   console.log("per kind (all / from IKEA data):");
   for (const [k, [all, ikea]] of [...perKind].sort((a, b) => b[1][0] - a[1][0])) console.log(`  ${k.padEnd(18)} ${String(all).padStart(4)} / ${ikea}`);
   console.log(`\nbuilt ${PRODUCTS.length} plans in ${Math.round(ms)} ms, search ${perQuery.toFixed(2)} ms a query`);

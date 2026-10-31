@@ -35,6 +35,7 @@ import { useMounted } from "@/lib/useMounted";
 import { getUserKey, keyHeaders, useUserKey } from "@/lib/userKey";
 import KeyModal, { type KeyTrouble, type KeyWhy } from "../KeyModal";
 import { decodeSpec } from "@/lib/scan/share";
+import { isTextbookSpec } from "@/lib/textbook";
 import { track } from "@vercel/analytics";
 import { SCAN_ENABLED } from "@/lib/site";
 
@@ -899,7 +900,7 @@ function Guide({ plan, slug, via, ai, startStep, onOwnSteps }: { plan: Plan; slu
             </div>
           )}
           {phase === "steps" && step === 0 && !moved && <span className="drag-hint">Drag to turn it around</span>}
-          {phase === "parts" && <span className="sheet-caption">Lay your panels out like this</span>}
+          {phase === "parts" && <span className="sheet-caption">{isTextbookSpec(plan.spec) ? "Lay your parts out like this" : "Lay your panels out like this"}</span>}
           {voiceOn && phase === "steps" && (
             <div className="listening" role="status">
               <span className={"eq" + (speaking ? " on" : "")} aria-hidden="true">

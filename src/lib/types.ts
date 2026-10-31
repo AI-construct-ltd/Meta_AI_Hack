@@ -156,6 +156,38 @@ export interface SofaParams {
   table?: number; // cm: a side table module at the right-hand end (size.w takes it in)
 }
 
+/** Corrugated deck or siding: ribs running along local X, centred on the origin. Dimensions in mm. */
+export interface FlutedProfile {
+  kind: "fluted";
+  ribs: number; // rib count across the width
+  pitch: number; // centre to centre of neighbouring ribs
+  depth: number; // rib height
+  top?: number; // top flat width (defaults to 40% of the pitch)
+  bottom?: number; // bottom flat width (defaults to 40% of the pitch)
+  length: number; // along the ribs
+  thick?: number; // sheet thickness (defaults to 1)
+}
+
+/** A structural I/H section running along local X, centred on the origin. Dimensions in mm. */
+export interface IBeamProfile {
+  kind: "ibeam";
+  depth: number; // web height
+  flange: number; // flange width
+  web: number; // web thickness
+  thick: number; // flange thickness
+  length: number; // along the beam
+}
+
+/** One solid of a multi-solid part, in the part's own frame (mm, centred on the part). */
+export interface CustomPiece {
+  shape?: "box" | "cyl" | "prism"; // prism: right triangle legs size[0] x size[1], extruded size[2] along z
+  size: Vec3; // mm: box extents, cylinder [dia, length, dia], prism [legX, legY, length]
+  pos: Vec3; // mm from the part centre
+  rot?: Vec3; // XYZ euler in degrees about the piece centre
+  material?: PartMaterial;
+  profile?: FlutedProfile | IBeamProfile; // when set, expands to exact boxes; size/pos give its bounding box
+}
+
 /** A product read from someone's own manual: parts as boxes in the assembled product, steps that add them. */
 export interface CustomPart {
   id: string;
@@ -163,8 +195,11 @@ export interface CustomPart {
   name: string;
   size: Vec3; // mm along x (width), y (height), z (depth) as it sits in the finished product
   pos: Vec3; // mm, centre of the part; y up from the floor, x left to right, z back to front
-  shape?: "box" | "cyl";
+  shape?: "box" | "cyl" | "prism"; // prism: right triangle legs size[0] x size[1], extruded size[2] along z
+  rot?: Vec3; // XYZ euler in degrees about the part centre (rafters at pitch, diagonal bracing)
   material?: PartMaterial;
+  pieces?: CustomPiece[]; // multi-solid parts (fluted deck, I-beams, CMU cores, open-web joists)
+  profile?: FlutedProfile | IBeamProfile; // a whole part that is one profile (a deck sheet, a beam)
 }
 
 export interface CustomFix {
@@ -247,9 +282,9 @@ export interface RowUnit {
 
 export type PartMaterial = "board" | "fiber" | "wood" | "metal" | "soft";
 
-/** One box or cylinder of a part made of several (a star base, a cot side with bars), in the part's own frame. */
+/** One solid of a part made of several (a star base, a cot side with bars), in the part's own frame. */
 export interface PartPiece {
-  shape: "box" | "cyl";
+  shape: "box" | "cyl" | "prism";
   size: Vec3; // mm, box extents or cylinder [dia, length, dia]
   pos: Vec3; // mm, from the centre of the part
   rot?: Vec3;
@@ -261,7 +296,7 @@ export interface PartType {
   label: string; // letter
   name: string;
   size: Vec3; // mm, box extents or cylinder [dia, length, dia]; the bounding box when it has pieces
-  shape: "box" | "cyl";
+  shape: "box" | "cyl" | "prism";
   material: PartMaterial;
   qty: number;
   extra?: boolean; // not in the box (e.g. mattress)

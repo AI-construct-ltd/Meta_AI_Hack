@@ -1,6 +1,7 @@
-import type { CustomFix, CustomPart, CustomStep, HwKind, PartMaterial, Pose, ProductSpec, StepKind, ToolId, Vec3, WarnId } from "../types";
+import type { CustomFix, CustomPart, CustomPiece, CustomStep, FlutedProfile, HwKind, IBeamProfile, PartMaterial, PartPiece, Pose, ProductSpec, StepKind, ToolId, Vec3, WarnId } from "../types";
+import { isTextbookSpec } from "../textbook";
 import { HW, PlanBuilder, type FitOpts, type HwDef } from "./builder";
-import { POSE_EULER, unrotate } from "./math";
+import { POSE_EULER, rotate, unrotate } from "./math";
 
 /**
  * Builds a guide from a product someone scanned from their own manual.
@@ -33,6 +34,96 @@ export function boxOf(p: { size: Vec3; pos: Vec3 }): Box {
     min: [p.pos[0] - p.size[0] / 2, p.pos[1] - p.size[1] / 2, p.pos[2] - p.size[2] / 2],
     max: [p.pos[0] + p.size[0] / 2, p.pos[1] + p.size[1] / 2, p.pos[2] + p.size[2] / 2],
   };
+}
+
+const deg2rad = (e: Vec3): Vec3 => [(e[0] * Math.PI) / 180, (e[1] * Math.PI) / 180, (e[2] * Math.PI) / 180];
+
+/** World-frame bounding box of a part, honouring its rotation for box solids. */
+function boxOfPart(p: CustomPart): Box {
+  const b = boxOf(p);
+  if (!p.rot) return b;
+  // explicit rotation: size is in the part's local frame (legacy rods carry no rot)
+  const e = deg2rad(p.rot);
+  const lo: Vec3 = [Infinity, Infinity, Infinity], hi: Vec3 = [-Infinity, -Infinity, -Infinity];
+  for (const a of [-1, 1])
+    for (const c of [-1, 1])
+      for (const d of [-1, 1]) {
+        const v = rotate([(a * p.size[0]) / 2, (c * p.size[1]) / 2, (d * p.size[2]) / 2], e);
+        for (let i = 0; i < 3; i++) {
+          lo[i] = Math.min(lo[i], p.pos[i] + v[i]);
+          hi[i] = Math.max(hi[i], p.pos[i] + v[i]);
+        }
+      }
+  return { min: lo, max: hi };
+}
+
+/** A corrugated sheet as exact thin boxes: ribs run along X, repeating across Z. */
+function expandFluted(f: FlutedProfile, material: PartMaterial | undefined): PartPiece[] {
+  const ribs = Math.max(1, Math.min(40, Math.round(f.ribs)));
+  const pitch = Math.max(1, f.pitch);
+  const depth = Math.max(1, f.depth);
+  const thick = Math.max(0.5, f.thick ?? 1);
+  const top = Math.min(pitch * 0.9, Math.max(1, f.top ?? pitch * 0.4));
+  const bottom = Math.min(pitch - top - 1, Math.max(1, f.bottom ?? pitch * 0.4));
+  const run = Math.max(0, (pitch - top - bottom) / 2);
+  const slant = Math.hypot(depth, run);
+  const ang = Math.atan2(run, depth);
+  const out: PartPiece[] = [];
+  const W = ribs * pitch;
+  for (let i = 0; i < ribs; i++) {
+    const z = -W / 2 + pitch * (i + 0.5);
+    out.push({ shape: "box", size: [f.length, thick, bottom], pos: [0, -depth / 2, z], material });
+    out.push({ shape: "box", size: [f.length, thick, top], pos: [0, depth / 2, z], material });
+    for (const s of [-1, 1]) {
+      out.push({ shape: "box", size: [f.length, slant, thick], pos: [0, 0, z + s * (top / 2 + run / 2)], rot: [-s * ang, 0, 0], material });
+    }
+  }
+  return out;
+}
+
+/** A structural I section as three boxes: two flanges and the web. */
+function expandIBeam(m: IBeamProfile, material: PartMaterial | undefined): PartPiece[] {
+  const webH = Math.max(1, m.depth - 2 * m.thick);
+  return [
+    { shape: "box", size: [m.length, m.thick, m.flange], pos: [0, m.depth / 2 - m.thick / 2, 0], material },
+    { shape: "box", size: [m.length, m.thick, m.flange], pos: [0, -m.depth / 2 + m.thick / 2, 0], material },
+    { shape: "box", size: [m.length, webH, m.web], pos: [0, 0, 0], material },
+  ];
+}
+
+/** A multi-solid part description expanded to exact pieces, or null for a plain box/cylinder. */
+function expandPieces(p: CustomPart): PartPiece[] | null {
+  if (p.profile?.kind === "fluted") return expandFluted(p.profile, p.material);
+  if (p.profile?.kind === "ibeam") return expandIBeam(p.profile, p.material);
+  if (p.pieces?.length) {
+    const out: PartPiece[] = [];
+    for (const q of p.pieces) {
+      const inner = expandPiece(q);
+      if (q.rot) {
+        const e = deg2rad(q.rot);
+        for (const s of inner) {
+          s.pos = rotate(s.pos, e);
+          s.rot = s.rot ? [s.rot[0] + e[0], s.rot[1] + e[1], s.rot[2] + e[2]] : [...e];
+        }
+      }
+      for (const s of inner) {
+        s.pos = [s.pos[0] + q.pos[0], s.pos[1] + q.pos[1], s.pos[2] + q.pos[2]];
+        out.push(s);
+      }
+    }
+    return out;
+  }
+  if (p.shape === "prism") return [{ shape: "prism", size: p.size, pos: [0, 0, 0], material: p.material }];
+  return null;
+}
+
+function expandPiece(q: CustomPiece): PartPiece[] {
+  if (q.profile?.kind === "fluted") return expandFluted(q.profile, q.material);
+  if (q.profile?.kind === "ibeam") return expandIBeam(q.profile, q.material);
+  const shape = q.shape ?? "box";
+  if (shape === "prism") return [{ shape: "prism", size: q.size, pos: [0, 0, 0], material: q.material }];
+  if (shape === "cyl") return [{ shape: "cyl", size: q.size, pos: [0, 0, 0], material: q.material }];
+  return [{ shape: "box", size: q.size, pos: [0, 0, 0], material: q.material }];
 }
 
 const ext = (b: Box, k: number) => b.max[k] - b.min[k];
@@ -74,6 +165,34 @@ function contactOf(a: Node, b: Node, tol = 4): Contact | null {
 
 const longLen = (c: Contact) => Math.max(c.rect[0][1] - c.rect[0][0], c.rect[1][1] - c.rect[1][0]);
 
+/**
+ * A joint where one member sits inside the other (a stud in its track, a tenon in its
+ * mortise): every axis overlaps, so the thinnest engagement is the joint plane.
+ * Used for hardware placement only; part arrivals keep the face-touching contactOf
+ * so nested parts (grout, rebar) still drop in from above instead of sliding sideways.
+ */
+function nestingContact(a: Node, b: Node): Contact | null {
+  const ov = AXES.map((k) => Math.min(a.box.max[k], b.box.max[k]) - Math.max(a.box.min[k], b.box.min[k]));
+  if (!ov.every((o) => o > 0)) return null;
+  const n = AXES.reduce((m, k) => (ov[k] < ov[m] ? k : m), 0);
+  const [u, v] = AXES.filter((j) => j !== n) as [0 | 1 | 2, 0 | 1 | 2];
+  const aLow = mid(a.box, n) < mid(b.box, n);
+  const plane = aLow ? (a.box.max[n] + b.box.min[n]) / 2 : (a.box.min[n] + b.box.max[n]) / 2;
+  return {
+    a,
+    b,
+    n: n as 0 | 1 | 2,
+    plane,
+    rect: [
+      [Math.max(a.box.min[u], b.box.min[u]), Math.min(a.box.max[u], b.box.max[u])],
+      [Math.max(a.box.min[v], b.box.min[v]), Math.min(a.box.max[v], b.box.max[v])],
+    ],
+    uv: [u, v],
+  };
+}
+
+const contactDeep = (a: Node, b: Node): Contact | null => contactOf(a, b) ?? nestingContact(a, b);
+
 /** Evenly spaced points along the long side of a contact, centred across the short side. */
 function along(c: Contact, count: number, o: { inset?: number; across?: number } = {}): Vec3[] {
   const lu = c.rect[0][1] - c.rect[0][0], lv = c.rect[1][1] - c.rect[1][0];
@@ -111,7 +230,26 @@ function share(count: number, contacts: Contact[]) {
   return sorted.map((c, i) => ({ c, k: ks[i] }));
 }
 
-function defFor(f: CustomFix, thick?: number): HwDef {
+/** A 16d common nail (3 1/2 in), the default framing nail in trade guides. */
+const TRADE_NAIL: HwDef = { kind: "nail", len: 89, dia: 4.1 };
+
+/**
+ * Base name for grouping: "Left end stud" and "Stud 2 (16 in O.C.)" are the same stick.
+ * Dimension tokens (2x6, 1/2) and roles (king, jack, cripple) survive; positions and counts don't.
+ */
+function normPartName(n: string) {
+  const base = n
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\b(left|right|front|back|top|bottom|upper|lower)\b/g, " ")
+    .replace(/(?<![\dx/.])\d+(?:\.\d+)?(?![\dx/]|\s*-\s*ga\b)/g, " ")
+    .replace(/#(?=\s|$)/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return base || n.toLowerCase();
+}
+
+function defFor(f: CustomFix, thick?: number, trade = false): HwDef {
   const base: HwDef = (() => {
     switch (f.kind) {
       case "dowel":
@@ -121,7 +259,7 @@ function defFor(f: CustomFix, thick?: number): HwDef {
       case "cam":
         return HW.cam;
       case "nail":
-        return HW.nail;
+        return trade ? TRADE_NAIL : HW.nail;
       case "pin":
         return HW.pin;
       case "legScrew":
@@ -191,34 +329,60 @@ export function buildCustom(b: PlanBuilder, s: ProductSpec) {
   if (!c || !c.parts.length) throw new Error("no parts");
   const nodes = new Map<string, Node>();
   const center: Vec3 = [0, 0, 0];
-  const all = c.parts.map((p) => boxOf(p));
+  const all = c.parts.map((p) => boxOfPart(p));
   const lo: Vec3 = [Math.min(...all.map((x) => x.min[0])), Math.min(...all.map((x) => x.min[1])), Math.min(...all.map((x) => x.min[2]))];
   const hi: Vec3 = [Math.max(...all.map((x) => x.max[0])), Math.max(...all.map((x) => x.max[1])), Math.max(...all.map((x) => x.max[2]))];
   for (const k of AXES) center[k] = (lo[k] + hi[k]) / 2;
 
   // one part type per distinct name and size, so identical panels share a letter
   const labelsOk = c.parts.every((p) => p.label && p.label.length <= 3) && new Set(c.parts.map((p) => p.label)).size === new Set(c.parts.map((p) => `${p.name}|${p.size.map(Math.round).join("x")}`)).size;
-  const types = new Map<string, string>();
+  const trade = isTextbookSpec(s);
+  // trade guides name identical members for their position ("Left end stud", "Stud 2"): group those
+  // too, like the flat-pack builders do, so the parts list and 3D labels read "Stud × 7"
+  const groups = new Map<string, CustomPart[]>();
+  const sig = (p: CustomPart) => JSON.stringify(p.pieces ?? p.profile ?? p.shape ?? "box", (_, v) => (typeof v === "number" ? Math.round(v * 100) / 100 : v));
   for (const p of c.parts) {
-    const material = inferMaterial(p);
-    const horizontalRod = p.shape === "cyl" && Math.max(p.size[0], p.size[2]) > p.size[1] * 1.5;
-    const tk = `${p.name.toLowerCase()}|${p.size.map((n) => Math.round(n)).join("x")}|${p.shape ?? "box"}|${material}`;
-    let ref = types.get(tk);
-    if (!ref) {
-      const size: Vec3 = p.shape === "cyl" ? (horizontalRod ? [Math.min(p.size[1], p.size[2], p.size[0]), Math.max(p.size[0], p.size[2]), Math.min(p.size[1], p.size[2], p.size[0])] : [p.size[0], p.size[1], p.size[2]]) : p.size;
-      ref = b.part(p.name, size, { shape: p.shape ?? "box", material, label: labelsOk ? p.label : undefined });
-      types.set(tk, ref);
+    const tk = `${trade ? normPartName(p.name) : p.name.toLowerCase()}|${p.size.map((n) => Math.round(n)).join("x")}|${inferMaterial(p)}|${sig(p)}`;
+    const g = groups.get(tk);
+    if (g) g.push(p);
+    else groups.set(tk, [p]);
+  }
+  for (const members of groups.values()) {
+    const first = members[0];
+    const material = inferMaterial(first);
+    const name = trade && members.length > 1 ? normPartName(first.name).replace(/^./, (ch) => ch.toUpperCase()) : first.name;
+    const label = !trade && labelsOk ? first.label : undefined;
+    const expanded = expandPieces(first);
+    let ref: string;
+    if (expanded) {
+      ref = b.composite(name, first.size, expanded, { material, label });
+    } else {
+      // explicit rot means the size is already in the part's local frame: no auto-orienting
+      const horizontalRod = !first.rot && first.shape === "cyl" && Math.max(first.size[0], first.size[2]) > first.size[1] * 1.5;
+      const size: Vec3 =
+        first.shape === "cyl"
+          ? horizontalRod
+            ? [Math.min(first.size[1], first.size[2], first.size[0]), Math.max(first.size[0], first.size[2]), Math.min(first.size[1], first.size[2], first.size[0])]
+            : [first.size[0], first.size[1], first.size[2]]
+          : first.size;
+      ref = b.part(name, size, { shape: first.shape ?? "box", material, label });
     }
-    const rot: Vec3 = horizontalRod ? (p.size[0] >= p.size[2] ? [0, 0, Math.PI / 2] : [Math.PI / 2, 0, 0]) : [0, 0, 0];
-    const key = b.place(ref, p.pos, rot);
-    nodes.set(p.id, { id: p.id, part: p, key, box: boxOf(p) });
+    for (const p of members) {
+      let rot: Vec3;
+      if (p.rot) rot = deg2rad(p.rot);
+      else if (!expanded && p.shape === "cyl" && Math.max(p.size[0], p.size[2]) > p.size[1] * 1.5) {
+        rot = p.size[0] >= p.size[2] ? [0, 0, Math.PI / 2] : [Math.PI / 2, 0, 0];
+      } else rot = [0, 0, 0];
+      const key = b.place(ref, p.pos, rot);
+      nodes.set(p.id, { id: p.id, part: p, key, box: boxOfPart(p) });
+    }
   }
 
   const placed: Node[] = [];
   let lastAdded: Node[] = [];
   let stepHosts: Node[] = [];
   const used: Vec3[] = [];
-  const ctx: Ctx = { center, lo, hi };
+  const ctx: Ctx = { center, lo, hi, trade };
   const isPlaced = (n: Node) => placed.includes(n);
   const steps = normalizeSteps(c.steps, c.parts);
   let pose: Pose = "+y";
@@ -273,7 +437,7 @@ export function buildCustom(b: PlanBuilder, s: ProductSpec) {
           for (let i = 0; i < pool.length; i++)
             for (let j = 0; j < i; j++) {
               if (!keep(pool[i], pool[j])) continue;
-              const ct = contactOf(pool[i], pool[j]);
+              const ct = contactDeep(pool[i], pool[j]);
               if (ct) out.push(ct);
             }
           return out;
@@ -370,6 +534,7 @@ interface Ctx {
   center: Vec3;
   lo: Vec3;
   hi: Vec3;
+  trade: boolean;
 }
 
 /** Work out where each fitting of one kind goes. Nothing is emitted yet, so the step can show the host parts first. */
@@ -481,9 +646,10 @@ function planFits(f: CustomFix, contacts: Contact[], fresh: Node[], placed: Node
     case "bracket": {
       const top = [...placed, ...fresh].reduce<Node | null>((a, n) => (!a || n.box.max[1] > a.box.max[1] ? n : a), null);
       if (top) {
-        const n = Math.min(count, ext(top.box, 0) > 1000 ? 2 : 1);
+        // ties, straps and anchors spread along the highest member, one per request
+        const n = Math.min(count, 12);
         for (let i = 0; i < n; i++) {
-          const x = n === 1 ? mid(top.box, 0) : top.box.min[0] + (ext(top.box, 0) * (i + 1)) / 3;
+          const x = n === 1 ? mid(top.box, 0) : top.box.min[0] + (ext(top.box, 0) * (i + 1)) / (n + 1);
           one(top, { at: [x, top.box.max[1], top.box.min[2] + 16], dir: [0, -1, 0], travel: 60 });
         }
       }
@@ -497,19 +663,19 @@ function planFits(f: CustomFix, contacts: Contact[], fresh: Node[], placed: Node
         const other = otherOf(c, through);
         const dir = into(c, other);
         const face = dir[c.n] > 0 ? through.box.min[c.n] : through.box.max[c.n];
-        const g: Group = { def: defFor(f, ext(through.box, c.n)), fits: [] };
+        const g: Group = { def: defFor(f, ext(through.box, c.n), ctx.trade), fits: [] };
         const sl = longAxis(c);
         for (const p of along(c, k, { inset: 0.14 })) {
           const q: Vec3 = [...p];
           q[c.n] = face;
-          g.fits.push({ on: through.key, host: through, slide: sl, at: q, dir, mate: other.key, hole: f.kind === "nail" ? false : undefined });
+          g.fits.push({ on: through.key, host: through, slide: sl, at: q, dir, mate: other.key, hole: f.kind === "nail" ? false : undefined, travel: f.kind === "nail" && ctx.trade ? g.def.len + 14 : undefined });
         }
         groups.push(g);
       }
       return groups;
     }
   }
-  return fits.length ? [{ def: defFor(f), fits }] : [];
+  return fits.length ? [{ def: defFor(f, undefined, ctx.trade), fits }] : [];
 }
 
 /** Emit fittings, nudging any that would sit on top of one placed earlier. */

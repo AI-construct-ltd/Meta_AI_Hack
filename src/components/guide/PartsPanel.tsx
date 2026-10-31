@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Plan } from "@/lib/types";
+import { isTextbookSpec } from "@/lib/textbook";
 import { HwArt, canActualSize } from "../art/Hardware";
 import { IAlert, IArrowLeft, IArrowRight, ICheck, IClose, IRuler } from "../art/Icons";
 import Thumb from "../Thumb";
@@ -31,6 +32,7 @@ export default function PartsPanel({
   onHover: (ids: string[] | null) => void;
   onMissingHelp: () => void;
 }) {
+  const trade = isTextbookSpec(plan.spec);
   const panels = plan.parts.filter((p) => !p.extra);
   const hw = plan.hardware.filter((h) => !h.notIncluded);
   const extra = plan.hardware.filter((h) => h.notIncluded);
@@ -108,13 +110,13 @@ export default function PartsPanel({
     <div className="pane">
       <div className="pane-scroll">
         <header className="pane-head">
-          <p className="eyebrow">Unpack</p>
-          <h2>Check the box</h2>
+          <p className="eyebrow">{trade ? "Cut list" : "Unpack"}</p>
+          <h2>{trade ? "Check the parts" : "Check the box"}</h2>
           <p className="sub">Lay everything out like the drawing. Tap anything that&apos;s missing.</p>
         </header>
 
         <h3 className="section-title">
-          Panels <span className="count-pill">{panels.reduce((s, p) => s + p.qty, 0)}</span>
+          {trade ? "Parts" : "Panels"} <span className="count-pill">{panels.reduce((s, p) => s + p.qty, 0)}</span>
         </h3>
         <div className="plist">
           {panels.map((p, i) =>
@@ -181,7 +183,9 @@ export default function PartsPanel({
               <b>
                 {nMissing} {nMissing === 1 ? "thing" : "things"} missing
               </b>
-              <span>You can still build the steps that don&apos;t need {nMissing === 1 ? "it" : "them"}. Spare fittings are usually free at IKEA.</span>
+              <span>
+                You can still build the steps that don&apos;t need {nMissing === 1 ? "it" : "them"}. {trade ? "Spares are available at any hardware store." : "Spare fittings are usually free at IKEA."}
+              </span>
               <button className="btn link inline" onClick={onMissingHelp}>
                 How to get spare parts
               </button>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { spellOut } from "@/lib/shorthand";
+import { isTextbookSpec } from "@/lib/textbook";
 import type { Plan } from "@/lib/types";
 import { buildMinutes, type Progress } from "@/lib/store";
 import { floorSpace, totals } from "@/lib/plan/contents";
@@ -33,6 +34,7 @@ export default function CoverPanel({
 }) {
   const s = plan.spec;
   const t = totals(plan);
+  const trade = isTextbookSpec(s);
   const resumable = resume && (resume.phase !== "cover" || resume.step > 0) && resume.phase !== "done";
   const tools = plan.tools.filter((x) => !x.optional && !x.included).map((x) => TOOL_INFO[x.id].name.replace("Phillips ", ""));
   return (
@@ -93,7 +95,15 @@ export default function CoverPanel({
               <IRuler size={18} />
             </span>
             <span>
-              Clear <b>{floorSpace(plan)}</b> of floor and lay the flattened box down as a mat.
+              {trade ? (
+                <>
+                  Clear <b>{floorSpace(plan)}</b> of floor and lay out the parts.
+                </>
+              ) : (
+                <>
+                  Clear <b>{floorSpace(plan)}</b> of floor and lay the flattened box down as a mat.
+                </>
+              )}
             </span>
           </li>
           <li>
@@ -101,7 +111,14 @@ export default function CoverPanel({
               <IBox size={18} />
             </span>
             <span>
-              <b>{t.panels} panels</b> and <b>{t.fittings} fittings</b> in {plan.steps.length} steps.
+              <b>
+                {t.panels} {trade ? "parts" : "panels"}
+              </b>{" "}
+              and{" "}
+              <b>
+                {t.fittings} {trade ? "fasteners" : "fittings"}
+              </b>{" "}
+              in {plan.steps.length} steps.
             </span>
           </li>
           {tools.length > 0 && (

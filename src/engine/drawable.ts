@@ -103,6 +103,7 @@ export function partDrawable(p: PartType, holes: Hole[]) {
       const c = MAT_COLOR[mat] ?? FACE.board;
       const at = { position: q.pos, rotation: q.rot };
       if (q.shape === "cyl") addSolid(d, `cyl:${qx}:${qy}`, () => new THREE.CylinderGeometry(qx / 2, qx / 2, qy, 32), c, { hull: "cyl", ...at });
+      else if (q.shape === "prism") addSolid(d, `prism:${qx}:${qy}:${qz}`, () => prismGeo(qx, qy, qz), c, { hull: "radial", ...at });
       else if (mat === "soft") addSolid(d, `soft:${qx}:${qy}:${qz}`, () => roundedBox(qx, qy, qz, Math.min(42, qy / 2.4, qx / 3, qz / 3)), c, { hull: "box", half: [qx / 2, qy / 2, qz / 2], edges: false, ...at });
       else addSolid(d, `box:${qx}:${qy}:${qz}`, () => new THREE.BoxGeometry(qx, qy, qz), c, at);
     }
@@ -144,6 +145,19 @@ export function partDrawable(p: PartType, holes: Hole[]) {
     d.thin.push(lm);
   }
   return d;
+}
+
+/** Right triangular prism: legs w (x) by h (y), extruded d along z, centred on its bounding box. */
+function prismGeo(w: number, h: number, d: number) {
+  const x0 = -w / 2, y0 = -h / 2;
+  const shape = new THREE.Shape();
+  shape.moveTo(x0, y0);
+  shape.lineTo(x0 + w, y0);
+  shape.lineTo(x0, y0 + h);
+  shape.closePath();
+  const g = new THREE.ExtrudeGeometry(shape, { depth: d, bevelEnabled: false });
+  g.translate(0, 0, -d / 2);
+  return g;
 }
 
 function roundedBox(w: number, h: number, dpt: number, r: number) {

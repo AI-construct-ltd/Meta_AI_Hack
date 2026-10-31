@@ -13,7 +13,12 @@
     "voice:check": "node --experimental-transform-types --no-warnings --import ./scripts/voice/register.mjs scripts/voice/listen-check.ts",
     "ikea:fetch": "node --experimental-transform-types --no-warnings scripts/ikea/fetch.ts",
     "ikea:build": "node --experimental-transform-types --no-warnings --import ./scripts/voice/register.mjs scripts/ikea/build.ts",
-    "ikea:check": "node --experimental-transform-types --no-warnings --import ./scripts/voice/register.mjs scripts/ikea/check.ts"
+    "ikea:check": "node --experimental-transform-types --no-warnings --import ./scripts/voice/register.mjs scripts/ikea/check.ts",
+    "textbook:build": "node --experimental-transform-types --no-warnings --import ./scripts/voice/register.mjs scripts/textbook/build.ts",
+    "textbook:check": "node --experimental-transform-types --no-warnings --import ./scripts/voice/register.mjs scripts/textbook/check.ts",
+    "textbook:upgrade": "node --experimental-transform-types --no-warnings --import ./scripts/voice/register.mjs scripts/textbook/upgrade.ts",
+    "textbook:expand": "node --experimental-transform-types --no-warnings --import ./scripts/voice/register.mjs scripts/textbook/expand.ts",
+    "textbook:audit": "node --experimental-transform-types --no-warnings --import ./scripts/voice/register.mjs scripts/textbook/audit.ts"
   },
   "dependencies": {
     "@google/genai": "^2.31.0",

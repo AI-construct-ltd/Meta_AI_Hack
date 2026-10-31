@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import type { Plan } from "@/lib/types";
 import { totals } from "@/lib/plan/contents";
+import { isTextbookSpec } from "@/lib/textbook";
 import { POPULAR } from "@/lib/search";
 import { buildMinutes, getPref, setPref } from "@/lib/store";
 import { Figure } from "../art/Figure";
@@ -16,13 +17,14 @@ import { recordCompletedBuild } from "@/lib/firebase/completions";
 export default function DonePanel({ plan, slug, finish, onReview }: { plan: Plan; slug: string; finish: { ms: number; full: boolean } | null; onReview: () => void }) {
   const t = totals(plan);
   const s = plan.spec;
+  const trade = isTextbookSpec(s);
   // a time only counts when the steps were followed, not tapped through in a minute
   const spent = buildMinutes(finish?.ms, finish?.full, s.minutes);
   const faster = spent !== null && spent < s.minutes * 0.95;
   const a = s.archetype;
   const recheck = a === "table" || a === "bed" || a === "seat" || a === "sofa";
   const tall = plan.steps.some((x) => x.kind === "anchor");
-  const stat = [spent ? fmtMin(spent) : null, `${plan.steps.length} steps`, `${t.fittings} fittings`].filter(Boolean).join("  \u00b7  ");
+  const stat = [spent ? fmtMin(spent) : null, `${plan.steps.length} steps`, `${t.fittings} ${trade ? "fasteners" : "fittings"}`].filter(Boolean).join("  \u00b7  ");
 
   useEffect(() => {
     recordCompletedBuild(plan, slug, spent, finish?.ms);
@@ -50,7 +52,7 @@ export default function DonePanel({ plan, slug, finish, onReview }: { plan: Plan
             <dd>{plan.steps.length}</dd>
           </div>
           <div>
-            <dt>Fittings</dt>
+            <dt>{trade ? "Fasteners" : "Fittings"}</dt>
             <dd>{t.fittings}</dd>
           </div>
         </motion.dl>
@@ -86,11 +88,13 @@ export default function DonePanel({ plan, slug, finish, onReview }: { plan: Plan
             </li>
           )}
           <li>
-            <ICheck size={16} strokeWidth={2.6} /> Spare fittings are normal. Tape the bag inside, with the Allen key.
+            <ICheck size={16} strokeWidth={2.6} /> {trade ? "Spare fasteners are normal. Keep a few in the toolbox." : "Spare fittings are normal. Tape the bag inside, with the Allen key."}
           </li>
-          <li>
-            <ICheck size={16} strokeWidth={2.6} /> Flatten the box for recycling.
-          </li>
+          {!trade && (
+            <li>
+              <ICheck size={16} strokeWidth={2.6} /> Flatten the box for recycling.
+            </li>
+          )}
         </ul>
       </div>
       <div className="pane-foot">

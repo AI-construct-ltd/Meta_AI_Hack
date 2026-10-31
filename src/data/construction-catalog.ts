@@ -1,7 +1,11 @@
-import type { ProductSpec } from "@/lib/types";
+import type { CustomPart, CustomStep, ProductSpec } from "@/lib/types";
 import { TRADES_MODULES } from "./trades-modules";
 import { BOOK_ASSEMBLIES } from "./book-assemblies";
 import { CHING_ASSEMBLIES } from "./ching-assemblies";
+import { GENERATED_ASSEMBLIES } from "./generated-assemblies";
+import UPGRADES_JSON from "./textbook-upgrades.json" with { type: "json" };
+
+const UPGRADES = UPGRADES_JSON as unknown as Record<string, { parts: CustomPart[]; steps: CustomStep[] } | string>;
 
 export type ConstructionEntry = Omit<ProductSpec, "source" | "slug" | "variants" | "siblings"> & {
   slug: string;
@@ -11,7 +15,7 @@ export type ConstructionEntry = Omit<ProductSpec, "source" | "slug" | "variants"
   checked?: boolean;
 };
 
-export const CONSTRUCTION_CATALOG: ConstructionEntry[] = [
+const BASE_CATALOG: ConstructionEntry[] = [
   {
     slug: "wall-framing-2x4",
     family: "framing-wall",
@@ -377,7 +381,7 @@ export const CONSTRUCTION_CATALOG: ConstructionEntry[] = [
     people: 1,
     difficulty: 1,
     material: "SPF 2x4 framing lumber, 16d and 10d common nails",
-    keywords: ["corner", "framing", "california corner", "drywall backing", "insulation", "carpentry", "apprentice"],
+    keywords: ["corner", "post", "corner post", "corner post framing", "three stud corner", "framing", "california corner", "drywall backing", "insulation", "carpentry", "apprentice"],
     tips: {
       frame: "The California corner replaces heavy solid posts with a configuration that leaves the cavity open for insulation and provides full drywall backing.",
       general: "Risk: Real-world structural lumber sizing, spans, and fastener schedules carry legal liability and must comply with local building codes (IRC/IBC/OSHA) and certified engineering.",
@@ -618,7 +622,7 @@ export const CONSTRUCTION_CATALOG: ConstructionEntry[] = [
     people: 2,
     difficulty: 3,
     material: "2x12 stringer stock, 2x4 kick plate, 1x8 riser lumber, 5/4x11 bullnose treads, 3 in screws and construction adhesive",
-    keywords: ["stairs", "stringers", "riser", "tread", "kick plate", "carpentry", "framing", "apprentice", "rise and run"],
+    keywords: ["stairs", "stair", "stringers", "stringer", "stair stringer", "riser", "tread", "kick plate", "carpentry", "framing", "apprentice", "rise and run"],
     tips: {
       frame: "Code dictates maximum riser height of 7-3/4 in and minimum tread run of 10 in. Subtract the thickness of one tread from the bottom of the stringer so all finished step rises are identical.",
       general: "Risk: Real-world structural lumber sizing, spans, and fastener schedules carry legal liability and must comply with local building codes (IRC/IBC/OSHA) and certified engineering.",
@@ -1020,4 +1024,12 @@ export const CONSTRUCTION_CATALOG: ConstructionEntry[] = [
   ...TRADES_MODULES,
   ...BOOK_ASSEMBLIES,
   ...CHING_ASSEMBLIES,
+  ...GENERATED_ASSEMBLIES,
 ];
+
+/** AI-regenerated accurate geometry replaces the hand-authored block per slug (see textbook-upgrades.json). */
+export const CONSTRUCTION_CATALOG: ConstructionEntry[] = BASE_CATALOG.map((e) => {
+  const u = UPGRADES[e.slug];
+  if (!u || typeof u === "string") return e;
+  return { ...e, custom: { parts: u.parts, steps: u.steps } };
+});

@@ -15,6 +15,7 @@ import { TOOL_INFO, ToolArt } from "../art/Tools";
 import { IArrowLeft, IPeople, IPrint } from "../art/Icons";
 import { fmtMin } from "./CoverPanel";
 import { SITE_URL } from "@/lib/site";
+import { isTextbookSpec } from "@/lib/textbook";
 
 const PER_PAGE = 6;
 
@@ -86,7 +87,7 @@ function Doc({ plan, slug }: { plan: Plan; slug: string }) {
         <h1>{s.name}</h1>
         <p className="pp-variant">{s.variant}</p>
         <p className="pp-facts">
-          {fmtMin(s.minutes)} &middot; {s.people === 2 ? "two people" : "one person"} &middot; {total} steps &middot; {t.panels} panels &middot; {t.fittings} fittings
+          {fmtMin(s.minutes)} &middot; {s.people === 2 ? "two people" : "one person"} &middot; {total} steps &middot; {t.panels} {isTextbookSpec(s) ? "parts" : "panels"} &middot; {t.fittings} {isTextbookSpec(s) ? "fasteners" : "fittings"}
         </p>
         <div className="pp-hero">
           <Thumb id={id} plan={plan} mode={{ kind: "assembled" }} w={640} h={420} />

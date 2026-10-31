@@ -150,7 +150,7 @@ export class PlanBuilder {
 
   constructor(public spec: ProductSpec) {}
 
-  part(name: string, size: Vec3, o: { shape?: "box" | "cyl"; material?: PartMaterial; extra?: boolean; label?: string } = {}) {
+  part(name: string, size: Vec3, o: { shape?: "box" | "cyl" | "prism"; material?: PartMaterial; extra?: boolean; label?: string } = {}) {
     const id = "p" + this.parts.length;
     this.parts.push({
       id,
@@ -189,6 +189,16 @@ export class PlanBuilder {
     const type = this.part(name, [r(hi[0] - lo[0]), r(hi[1] - lo[1]), r(hi[2] - lo[2])], { material: o.material, extra: o.extra });
     this.parts[this.parts.length - 1].pieces = pieces.map((p) => ({ ...p, pos: [r(p.pos[0] - mid[0]), r(p.pos[1] - mid[1]), r(p.pos[2] - mid[2])] }));
     return { type, mid };
+  }
+
+  /**
+   * A part made of several solids whose coordinates are already centred on the part
+   * (trade profiles expanded by the custom builder): stored as given, with an explicit size.
+   */
+  composite(name: string, size: Vec3, pieces: PartPiece[], o: { material?: PartMaterial; extra?: boolean; label?: string } = {}) {
+    const id = "p" + this.parts.length;
+    this.parts.push({ id, label: o.label ?? "", name, size, shape: "box", material: o.material ?? "board", qty: 0, extra: o.extra, pieces });
+    return id;
   }
 
   place(ref: string, pos: Vec3, rot: Vec3 = [0, 0, 0]) {

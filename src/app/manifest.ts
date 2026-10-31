@@ -11,10 +11,10 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#f8fafc",
     theme_color: "#f8fafc",
     icons: [
-      { src: "/icon.svg", sizes: "any", type: "image/svg+xml" },
-      { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
-      { src: "/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: "/aiconstruct%20logos+favicons/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { src: "/aiconstruct%20logos+favicons/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { src: "/aiconstruct%20logos+favicons/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
+      { src: "/aiconstruct%20logos+favicons/android-chrome-512x512.png", sizes: "512x512", type: "image/png" },
     ],
   };
 }
